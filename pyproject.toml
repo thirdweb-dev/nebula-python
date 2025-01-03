@@ -1,0 +1,102 @@
+[tool.poetry]
+name = "nebula-python"
+version = "0.1.0"
+description = ""
+authors = ["Stanley <gw.stanley.szeto@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pydantic = "^2.10.4"
+sseclient = "^0.0.27"
+
+[tool.poetry.group.dev.dependencies]
+pyright = "^1.1.391"
+ruff = "^0.8.4"
+
+[tool.pyright]
+include = ["src"]
+exclude = ["**/node_modules", "**/__pycache__"]
+typeCheckingMode = "strict"
+useLibraryCodeForTypes = true
+reportMissingTypeStubs = false
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+reportUnknownLambdaType = false
+reportUnknownParameterType = false
+reportPrivateUsage = "none"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["scripts", "tests", "evals"]
+
+[tool.ruff.lint]
+extend-select = [
+  "E", # pycodestyle (error)
+  "F", # pyflakes
+  "W", # pycodestyle (warning)
+  "I", # isort
+  "N", # pep8-naming
+  "UP", # pyupgrade
+  "A", # flake8-builtins
+  "B", # flake8-bugbear
+  "ASYNC", # flake8-async
+  "C4", # flake8-comprehensions
+  "COM", # flake8-commas
+  "SIM", # flake8-simplify
+  "RET", # flake8-return
+  "YTT", # flake8-2020
+  "PTH", # flake8-use-pathlib
+  "INT", # flake8-gettext
+  "TID", # flake8-tidy-imports
+  "SLOT", # flake8-slots
+  "SLF", # flake8-self
+  "RSE", # flake8-raise
+  "Q", # flake8-quotes
+  "PT", # flake8-pytest-style
+  "PYI", # flake8-pyi
+  "T20", # flake8-print
+  "PIE", # flake8-pie
+  "LOG", # flake8-logging
+  "ICN", # flake8-import-conventions
+  "ISC", # flake8-implicit-str-concat
+  "FA", # flake8-future-annotations
+  "T10", # flake8-debugger
+  "DTZ", # flake8-datetimez
+  "EXE", # flake8-executable
+  "FBT", # flake8-boolean-trap
+  "RUF", # ruff
+  "C", # conventions
+  "C90", # mccabe
+  "FURB", # refurb
+  "PERF", # perflint
+  "FLY", # flynt
+  "PLC", # pylint-convention
+  "PLE", # pylint-error
+  "PLW", # pylint-warning
+  "PGH", # pygrep-hooks
+  "NPY", # numpy
+  #"ANN", # annotation
+  #"ERA", # eradicate
+  #"PLR", # pylint-refactor
+  #"S", # flake8-bandit
+  #"ARG", # flake8-unused-arguments
+
+
+  #"TRY", # tryceratops
+  #"EM", # flake8-errmsg
+  #"BLE", # flake8-blind-except
+]
+ignore = [
+  "SIM103", # needless-bool
+  "E501", # line-too-long
+  "UP017", # datetime-timezone-utc
+  "ISC001", # implicit-str-concat
+  "COM812", # missing-trailing-comma
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
