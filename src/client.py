@@ -2,7 +2,6 @@ from collections.abc import Generator
 from typing import Any
 
 import requests
-import sseclient  # For streaming SSE (Server-Sent Events)
 
 from .exceptions import NebulaAPIError
 from .models import ChatParams, ChatResponse, ContextFilter, ExecuteConfig
@@ -17,7 +16,7 @@ class Nebula:
     def __init__(
         self,
         base_url: str | None = None,
-        api_key: str | None = None
+        secret_key: str | None = None
     ):
         """
         :param base_url: The base URL of your Nebula service.
@@ -27,7 +26,7 @@ class Nebula:
         if not base_url:
             base_url = "https://nebula-api.thirdweb.com"
         self.base_url = base_url.rstrip("/")
-        self.api_key = api_key
+        self.secret_key = secret_key
 
     def _headers(self) -> dict[str, str]:
         """
@@ -37,9 +36,29 @@ class Nebula:
         headers = {
             "Content-Type": "application/json",
         }
-        if self.api_key:
-            headers["Authorization"] = f"Bearer {self.api_key}"
+        if self.secret_key:
+            headers["x-secret-key"] = self.secret_key
         return headers
+
+    def _make_streaming_request(self, response: requests.Response) -> Generator[str, None, None]:
+        """Handle streaming response"""
+        for line in response.iter_lines():
+            if line:
+                # Decode the line from bytes to string
+                line = line.decode("utf-8")
+                # SSE format typically starts with "data: "
+                if line.startswith("data: "):
+                    # Remove the "data: " prefix and yield the content
+                    yield line[6:]
+
+    def _make_request(self, response: requests.Response) -> ChatResponse:
+        """Handle non-streaming response"""
+        try:
+            data = response.json()
+            return ChatResponse(**data)
+        except ValueError as e:
+            raise NebulaAPIError(f"Invalid JSON response from Nebula API: {e}")
+
 
     def chat(
         self,
@@ -50,23 +69,7 @@ class Nebula:
         context_filter: ContextFilter | dict[str, Any] | None = None,
         model_name: str | None = None
     ) -> ChatResponse | Generator[str, None, None]:
-        """
-        Send a chat message to Nebula's /chat endpoint. 
-
-        If stream=False, returns a single ChatResponse.
-        If stream=True, yields each part of the streaming response (Server-Sent Events).
-        
-        :param message: The text of the user’s message to the Nebula agent.
-        :param stream: Whether to return (yield) a streaming response.
-        :param session_id: Optional session ID to maintain conversation context.
-        :param config: A dict or ExecuteConfig object for execution (legacy).
-        :param execute_config: A dict or ExecuteConfig object for execution (new).
-        :param context_filter: A dict or ContextFilter object for chain/contract context.
-        :param model_name: Optional model name (e.g. "gpt-4").
-        :return: 
-            - If stream=False, a ChatResponse with the agent's reply.
-            - If stream=True, a generator yielding strings (chunks of the streamed response).
-        """
+        """Internal method to make the actual chat request"""
         url = f"{self.base_url}/chat"
 
         # Convert dicts to Pydantic objects if needed
@@ -79,36 +82,19 @@ class Nebula:
             stream=stream,
             session_id=session_id,
             execute_config=parsed_execute_config,
-
             context_filter=parsed_context_filter,
             model_name=model_name
         )
 
         payload = chat_params.model_dump(exclude_none=True)
+        response = requests.post(url, json=payload, headers=self._headers(), stream=stream)
 
-        if not stream:
-            # Non-streaming request
-            response = requests.post(url, json=payload, headers=self._headers())
-            if response.status_code != 200:
-                raise NebulaAPIError(
-                    f"Request failed with status code {response.status_code}: {response.text}"
-                )
+        if response.status_code != 200:
+            raise NebulaAPIError(
+                f"Request failed with status code {response.status_code}: {response.text}"
+            )
 
-            try:
-                data = response.json()
-                return ChatResponse(**data)
-            except ValueError:
-                raise NebulaAPIError("Invalid JSON response from Nebula API.")
+        if stream:
+            return self._make_streaming_request(response)
+        return self._make_request(response)
 
-        else:
-            # Streaming request with SSE
-            response = requests.post(url, json=payload, headers=self._headers(), stream=True)
-            if response.status_code != 200:
-                raise NebulaAPIError(
-                    f"Streaming request failed with status code {response.status_code}: {response.text}"
-                )
-            client = sseclient.SSEClient(response)
-            # Yield each part of the streaming response as it arrives
-            for event in client:
-                if event.event == "message":
-                    yield event.data

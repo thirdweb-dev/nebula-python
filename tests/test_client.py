@@ -11,7 +11,7 @@ def nebula_client():
     Pytest fixture for creating a fresh NebulaClient 
     with defaults for each test.
     """
-    return Nebula(api_key="test-api-key")
+    return Nebula(secret_key="test-secret-key")
 
 
 def test_non_streaming_success(nebula_client: Nebula):
@@ -64,25 +64,20 @@ def test_non_streaming_error(nebula_client: Nebula):
 
 def test_streaming_success(nebula_client: Nebula):
     """
-    Test a successful streaming chat request. 
-    We mock out SSEClient so we can control the chunks.
+    Test a successful streaming chat request using iter_lines.
     """
-    with patch("src.client.requests.post") as mock_post, \
-         patch("sseclient.SSEClient") as mock_sse_client:
-
-        # Mock the POST response (must be status 200 for a successful stream)
+    with patch("src.client.requests.post") as mock_post:
+        # Mock the POST response
         mock_response = MagicMock()
         mock_response.status_code = 200
+        
+        # Mock iter_lines to return encoded SSE-formatted data
+        mock_response.iter_lines.return_value = [
+            b'data: First chunk',
+            b'data: Second chunk',
+            b'data: Third chunk'
+        ]
         mock_post.return_value = mock_response
-
-        # Mock SSEClient to yield some SSE events
-        mock_event_1 = MagicMock(event="message", data="First chunk")
-        mock_event_2 = MagicMock(event="message", data="Second chunk")
-        mock_event_3 = MagicMock(event="message", data="Third chunk")
-
-        # sseclient.SSEClient(response) will be replaced by our mock_sse_client,
-        # which we make iterable by just returning a list of these mock events
-        mock_sse_client.return_value = [mock_event_1, mock_event_2, mock_event_3]
 
         # Now call chat with stream=True
         chunks = list(nebula_client.chat("Hello streaming!", stream=True))
@@ -98,13 +93,16 @@ def test_streaming_success(nebula_client: Nebula):
             stream=True
         )
 
+        # We expect each chunk without the "data: " prefix
+        assert chunks == ["First chunk", "Second chunk", "Third chunk"]
+
         # We expect each event's data to be yielded
         assert chunks == ["First chunk", "Second chunk", "Third chunk"]
 
 
 def test_streaming_error(nebula_client: Nebula):
     """
-    Test that a streaming chat request returns an error if the API is not 200.
+    Test that a streaming chat request raises an error if the API returns non-200 status.
     """
     with patch("src.client.requests.post") as mock_post:
         mock_response = MagicMock()
@@ -112,11 +110,8 @@ def test_streaming_error(nebula_client: Nebula):
         mock_response.text = "Forbidden"
         mock_post.return_value = mock_response
 
-        # Because chat returns a generator, we wrap it with list()
-        # to force iteration (and thus the request) to happen,
-        # which should raise NebulaAPIError.
         with pytest.raises(NebulaAPIError) as excinfo:
+            # Force generator iteration to trigger the error
             list(nebula_client.chat("Hello streaming error!", stream=True))
 
-        assert "Streaming request failed with status code 403" in str(excinfo.value)
-
+        assert "Request failed with status code 403: Forbidden" in str(excinfo.value)
