@@ -5,7 +5,7 @@ A Python client for interacting with the Nebula API, providing a seamless interf
 ## Installation
 
 ```bash
-pip install nebula-python
+pip install thirdweb-nebula
 ```
 
 ## Quick Start

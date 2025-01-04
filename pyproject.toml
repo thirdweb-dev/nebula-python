@@ -1,14 +1,35 @@
 [tool.poetry]
-name = "nebula-python"
+name = "thirdweb-nebula"
 version = "0.1.0"
-description = ""
+description = "A Python SDK for interacting with the Nebula API"
 authors = ["Stanley <gw.stanley.szeto@gmail.com>"]
 readme = "README.md"
+license = "MIT"
+homepage = "https://github.com/gwszeto/nebula-python"
+repository = "https://github.com/gwszeto/nebula-python"
+documentation = "https://github.com/gwszeto/nebula-python#readme"
+keywords = ["nebula", "thirdweb", "api", "sdk", "blockchain"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Internet :: WWW/HTTP",
+]
+packages = [
+    { include = "nebula", from = "src" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.12"
 pydantic = "^2.10.4"
 sseclient = "^0.0.27"
+requests = "^2.31.0"
+
+[tool.poetry.group.test.dependencies]
 pytest = "^8.3.4"
 mock = "^5.1.0"
 python-dotenv = "^1.0.1"

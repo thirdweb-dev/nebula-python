@@ -1,9 +1,9 @@
 import pytest
 from unittest.mock import patch, MagicMock
 
-from src.client import Nebula
-from src.exceptions import NebulaAPIError
-from src.models import ChatResponse
+from src.nebula.client import Nebula
+from src.nebula.exceptions import NebulaAPIError
+from src.nebula.models import ChatResponse
 
 @pytest.fixture
 def nebula_client():

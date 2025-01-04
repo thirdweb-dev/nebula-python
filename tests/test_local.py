@@ -1,6 +1,6 @@
 import pytest
-from src.client import Nebula
-from src.models import ChatResponse
+from src.nebula.client import Nebula
+from src.nebula.models import ChatResponse
 from dotenv import load_dotenv
 import os
 
